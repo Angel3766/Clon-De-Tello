@@ -11,19 +11,34 @@ function Card({ card, onClick }) {
     transform: CSS.Transform.toString(transform),
     transition,
     backgroundColor: 'white',
-    borderRadius: '4px',
-    padding: '8px',
+    borderRadius: '8px',
+    padding: '10px 12px',
     marginBottom: '8px',
-    boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
-    cursor: 'grab'
+    boxShadow: '0 2px 4px rgba(0,0,0,0.15)',
+    cursor: 'grab',
+    fontSize: '14px',
+    color: '#172b4d'
   }
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners} onClick={onClick}>
       {card.title}
       {card.assignedUser && (
-        <div style={{ fontSize: '12px', color: '#5e6c84', marginTop: '4px' }}>
+        <div style={{
+          fontSize: '11px',
+          color: '#5e6c84',
+          marginTop: '6px',
+          backgroundColor: '#f4f5f7',
+          padding: '2px 6px',
+          borderRadius: '10px',
+          display: 'inline-block'
+        }}>
           👤 {card.assignedUser}
+        </div>
+      )}
+      {card.comments && card.comments.length > 0 && (
+        <div style={{ fontSize: '11px', color: '#5e6c84', marginTop: '4px' }}>
+          💬 {card.comments.length} comentario{card.comments.length > 1 ? 's' : ''}
         </div>
       )}
     </div>
@@ -46,15 +61,24 @@ function List({ list, onAddCard, onAddComment, onAssignUser }) {
 
   return (
     <div style={{
-      backgroundColor: '#ebecf0',
-      borderRadius: '8px',
+      background: 'rgba(255,255,255,0.1)',
+      backdropFilter: 'blur(10px)',
+      borderRadius: '12px',
       padding: '12px',
       width: '270px',
       minWidth: '270px',
       maxHeight: '80vh',
-      overflowY: 'auto'
+      overflowY: 'auto',
+      border: '1px solid rgba(255,255,255,0.2)'
     }}>
-      <h3 style={{ marginBottom: '12px', fontSize: '16px' }}>{list.title}</h3>
+      <h3 style={{
+        marginBottom: '12px',
+        fontSize: '16px',
+        color: 'white',
+        fontWeight: 'bold'
+      }}>
+        {list.title}
+      </h3>
 
       <SortableContext items={list.cards.map(c => c.id)} strategy={verticalListSortingStrategy}>
         <div ref={setNodeRef}>
@@ -69,33 +93,44 @@ function List({ list, onAddCard, onAddComment, onAssignUser }) {
       </SortableContext>
 
       {adding ? (
-        <div>
+        <div style={{ marginTop: '8px' }}>
           <input
             autoFocus
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
             placeholder="Título de la tarjeta"
             style={{
-              width: '100%', padding: '6px',
-              borderRadius: '4px', border: '1px solid #ccc',
-              marginBottom: '6px'
+              width: '100%', padding: '8px',
+              borderRadius: '6px', border: 'none',
+              marginBottom: '6px', fontSize: '14px',
+              outline: 'none'
             }}
           />
           <button onClick={handleAdd} style={{
             backgroundColor: '#0079bf', color: 'white',
-            border: 'none', borderRadius: '4px',
-            padding: '6px 12px', cursor: 'pointer', marginRight: '6px'
+            border: 'none', borderRadius: '6px',
+            padding: '6px 12px', cursor: 'pointer',
+            marginRight: '6px', fontSize: '13px'
           }}>
             Agregar
           </button>
           <button onClick={() => setAdding(false)} style={{
-            background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px'
+            background: 'none', border: 'none',
+            cursor: 'pointer', fontSize: '16px', color: 'white'
           }}>✕</button>
         </div>
       ) : (
         <button onClick={() => setAdding(true)} style={{
-          background: 'none', border: 'none', cursor: 'pointer',
-          color: '#5e6c84', padding: '4px', width: '100%', textAlign: 'left'
+          background: 'rgba(255,255,255,0.1)',
+          border: '1px dashed rgba(255,255,255,0.3)',
+          cursor: 'pointer',
+          color: 'rgba(255,255,255,0.7)',
+          padding: '8px',
+          width: '100%',
+          textAlign: 'left',
+          borderRadius: '8px',
+          marginTop: '4px',
+          fontSize: '13px'
         }}>
           + Agregar tarjeta
         </button>
