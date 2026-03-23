@@ -1,6 +1,17 @@
+import { useState } from 'react'
 import { Draggable } from '@hello-pangea/dnd'
 
-function List({ title, cards }) {
+function List({ title, cards, onAddCard }) {
+  const [adding, setAdding] = useState(false)
+  const [newTitle, setNewTitle] = useState('')
+
+  function handleAdd() {
+    if (newTitle.trim() === '') return
+    onAddCard(newTitle)
+    setNewTitle('')
+    setAdding(false)
+  }
+
   return (
     <div style={{
       backgroundColor: '#ebecf0',
@@ -36,6 +47,55 @@ function List({ title, cards }) {
           </Draggable>
         ))}
       </div>
+
+      {adding ? (
+        <div>
+          <input
+            autoFocus
+            value={newTitle}
+            onChange={(e) => setNewTitle(e.target.value)}
+            placeholder="Título de la tarjeta"
+            style={{
+              width: '100%',
+              padding: '6px',
+              borderRadius: '4px',
+              border: '1px solid #ccc',
+              marginBottom: '6px'
+            }}
+          />
+          <button onClick={handleAdd} style={{
+            backgroundColor: '#0079bf',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            padding: '6px 12px',
+            cursor: 'pointer',
+            marginRight: '6px'
+          }}>
+            Agregar
+          </button>
+          <button onClick={() => setAdding(false)} style={{
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            fontSize: '16px'
+          }}>
+            ✕
+          </button>
+        </div>
+      ) : (
+        <button onClick={() => setAdding(true)} style={{
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          color: '#5e6c84',
+          padding: '4px',
+          width: '100%',
+          textAlign: 'left'
+        }}>
+          + Agregar tarjeta
+        </button>
+      )}
     </div>
   )
 }

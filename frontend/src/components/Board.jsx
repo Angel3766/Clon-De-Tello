@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'
+import { DragDropContext, Droppable } from '@hello-pangea/dnd'
 import List from './List'
 
 const initialData = {
@@ -53,6 +53,18 @@ function Board() {
     setData({ lists: newLists })
   }
 
+  function onAddCard(listId, title) {
+    const newCard = {
+      id: Date.now().toString(),
+      title
+    }
+    const newLists = data.lists.map(list => {
+      if (list.id === listId) return { ...list, cards: [...list.cards, newCard] }
+      return list
+    })
+    setData({ lists: newLists })
+  }
+
   return (
     <DragDropContext onDragEnd={onDragEnd}>
       <div style={{
@@ -69,6 +81,7 @@ function Board() {
                 <List
                   title={list.title}
                   cards={list.cards}
+                  onAddCard={(title) => onAddCard(list.id, title)}
                 />
                 {provided.placeholder}
               </div>
