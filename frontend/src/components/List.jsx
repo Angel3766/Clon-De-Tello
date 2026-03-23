@@ -1,11 +1,41 @@
 import { useState } from 'react'
-import { Draggable } from '@hello-pangea/dnd'
+import { useDroppable } from '@dnd-kit/core'
+import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import CardModal from './CardModal'
 
-function List({ title, cards, onAddCard, onAddComment, onAssignUser }) {
+function Card({ card, onClick }) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: card.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    backgroundColor: 'white',
+    borderRadius: '4px',
+    padding: '8px',
+    marginBottom: '8px',
+    boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+    cursor: 'grab'
+  }
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners} onClick={onClick}>
+      {card.title}
+      {card.assignedUser && (
+        <div style={{ fontSize: '12px', color: '#5e6c84', marginTop: '4px' }}>
+          👤 {card.assignedUser}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function List({ list, onAddCard, onAddComment, onAssignUser }) {
   const [adding, setAdding] = useState(false)
   const [newTitle, setNewTitle] = useState('')
   const [selectedCard, setSelectedCard] = useState(null)
+
+  const { setNodeRef } = useDroppable({ id: list.id })
 
   function handleAdd() {
     if (newTitle.trim() === '') return
@@ -24,32 +54,19 @@ function List({ title, cards, onAddCard, onAddComment, onAssignUser }) {
       maxHeight: '80vh',
       overflowY: 'auto'
     }}>
-      <h3 style={{ marginBottom: '12px', fontSize: '16px' }}>{title}</h3>
-      <div>
-        {cards.map((card, index) => (
-          <Draggable key={card.id} draggableId={card.id} index={index}>
-            {(provided) => (
-              <div
-                ref={provided.innerRef}
-                {...provided.draggableProps}
-                {...provided.dragHandleProps}
-                onClick={() => setSelectedCard(card)}
-                style={{
-                  backgroundColor: 'white',
-                  borderRadius: '4px',
-                  padding: '8px',
-                  marginBottom: '8px',
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
-                  cursor: 'grab',
-                  ...provided.draggableProps.style
-                }}
-              >
-                {card.title}
-              </div>
-            )}
-          </Draggable>
-        ))}
-      </div>
+      <h3 style={{ marginBottom: '12px', fontSize: '16px' }}>{list.title}</h3>
+
+      <SortableContext items={list.cards.map(c => c.id)} strategy={verticalListSortingStrategy}>
+        <div ref={setNodeRef}>
+          {list.cards.map((card) => (
+            <Card
+              key={card.id}
+              card={card}
+              onClick={() => setSelectedCard(card)}
+            />
+          ))}
+        </div>
+      </SortableContext>
 
       {adding ? (
         <div>
@@ -90,10 +107,7 @@ function List({ title, cards, onAddCard, onAddComment, onAssignUser }) {
           onClose={() => setSelectedCard(null)}
           onAddComment={(cardId, comment) => {
             onAddComment(cardId, comment)
-            setSelectedCard(prev => ({
-              ...prev,
-              comments: [...(prev.comments || []), comment]
-            }))
+            setSelectedCard(prev => ({ ...prev, comments: [...(prev.comments || []), comment] }))
           }}
           onAssignUser={(cardId, user) => {
             onAssignUser(cardId, user)

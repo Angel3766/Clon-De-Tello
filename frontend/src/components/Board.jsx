@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { DragDropContext, Droppable } from '@hello-pangea/dnd'
+import { DndContext, closestCenter } from '@dnd-kit/core'
 import List from './List'
 
 const initialData = {
@@ -32,33 +32,49 @@ const initialData = {
 function Board() {
   const [data, setData] = useState(initialData)
 
-  function onDragEnd(result) {
-    const { source, destination } = result
-    if (!destination) return
+  function onDragEnd(event) {
+    const { active, over } = event
+    if (!over) return
 
-    const sourcelist = data.lists.find(l => l.id === source.droppableId)
-    const destList = data.lists.find(l => l.id === destination.droppableId)
-    const sourceCards = [...sourcelist.cards]
-    const destCards = sourcelist.id === destList.id ? sourceCards : [...destList.cards]
+    const activeId = active.id
+    const overId = over.id
 
-    const [moved] = sourceCards.splice(source.index, 1)
-    destCards.splice(destination.index, 0, moved)
+    let sourceListId = null
+    let destListId = null
+    let movedCard = null
 
     const newLists = data.lists.map(list => {
-      if (list.id === sourcelist.id) return { ...list, cards: sourceCards }
-      if (list.id === destList.id) return { ...list, cards: destCards }
+      const cardIndex = list.cards.findIndex(c => c.id === activeId)
+      if (cardIndex !== -1) {
+        sourceListId = list.id
+        movedCard = list.cards[cardIndex]
+      }
       return list
     })
 
-    setData({ lists: newLists })
+    data.lists.forEach(list => {
+      const found = list.cards.find(c => c.id === overId)
+      if (found) destListId = list.id
+      if (list.id === overId) destListId = list.id
+    })
+
+    if (!destListId || sourceListId === destListId) return
+
+    const updatedLists = data.lists.map(list => {
+      if (list.id === sourceListId) {
+        return { ...list, cards: list.cards.filter(c => c.id !== activeId) }
+      }
+      if (list.id === destListId) {
+        return { ...list, cards: [...list.cards, movedCard] }
+      }
+      return list
+    })
+
+    setData({ lists: updatedLists })
   }
 
   function onAddCard(listId, title) {
-    const newCard = {
-      id: Date.now().toString(),
-      title,
-      comments: []
-    }
+    const newCard = { id: Date.now().toString(), title, comments: [] }
     const newLists = data.lists.map(list => {
       if (list.id === listId) return { ...list, cards: [...list.cards, newCard] }
       return list
@@ -77,7 +93,6 @@ function Board() {
     setData({ lists: newLists })
   }
 
-  // ✅ NUEVA FUNCIÓN
   function onAssignUser(cardId, user) {
     const newLists = data.lists.map(list => ({
       ...list,
@@ -90,7 +105,7 @@ function Board() {
   }
 
   return (
-    <DragDropContext onDragEnd={onDragEnd}>
+    <DndContext collisionDetection={closestCenter} onDragEnd={onDragEnd}>
       <div style={{
         padding: '20px',
         display: 'flex',
@@ -99,23 +114,16 @@ function Board() {
         minHeight: 'calc(100vh - 48px)'
       }}>
         {data.lists.map((list) => (
-          <Droppable key={list.id} droppableId={list.id}>
-            {(provided) => (
-              <div ref={provided.innerRef} {...provided.droppableProps}>
-                <List
-                  title={list.title}
-                  cards={list.cards}
-                  onAddCard={(title) => onAddCard(list.id, title)}
-                  onAddComment={onAddComment}
-                  onAssignUser={onAssignUser} // ✅ SE PASA AQUÍ
-                />
-                {provided.placeholder}
-              </div>
-            )}
-          </Droppable>
+          <List
+            key={list.id}
+            list={list}
+            onAddCard={(title) => onAddCard(list.id, title)}
+            onAddComment={onAddComment}
+            onAssignUser={onAssignUser}
+          />
         ))}
       </div>
-    </DragDropContext>
+    </DndContext>
   )
 }
 
