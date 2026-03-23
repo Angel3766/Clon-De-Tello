@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { Draggable } from '@hello-pangea/dnd'
+import CardModal from './CardModal'
 
-function List({ title, cards, onAddCard }) {
+function List({ title, cards, onAddCard, onAddComment }) {
   const [adding, setAdding] = useState(false)
   const [newTitle, setNewTitle] = useState('')
+  const [selectedCard, setSelectedCard] = useState(null)
 
   function handleAdd() {
     if (newTitle.trim() === '') return
@@ -31,6 +33,7 @@ function List({ title, cards, onAddCard }) {
                 ref={provided.innerRef}
                 {...provided.draggableProps}
                 {...provided.dragHandleProps}
+                onClick={() => setSelectedCard(card)}
                 style={{
                   backgroundColor: 'white',
                   borderRadius: '4px',
@@ -56,45 +59,43 @@ function List({ title, cards, onAddCard }) {
             onChange={(e) => setNewTitle(e.target.value)}
             placeholder="Título de la tarjeta"
             style={{
-              width: '100%',
-              padding: '6px',
-              borderRadius: '4px',
-              border: '1px solid #ccc',
+              width: '100%', padding: '6px',
+              borderRadius: '4px', border: '1px solid #ccc',
               marginBottom: '6px'
             }}
           />
           <button onClick={handleAdd} style={{
-            backgroundColor: '#0079bf',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            padding: '6px 12px',
-            cursor: 'pointer',
-            marginRight: '6px'
+            backgroundColor: '#0079bf', color: 'white',
+            border: 'none', borderRadius: '4px',
+            padding: '6px 12px', cursor: 'pointer', marginRight: '6px'
           }}>
             Agregar
           </button>
           <button onClick={() => setAdding(false)} style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            fontSize: '16px'
-          }}>
-            ✕
-          </button>
+            background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px'
+          }}>✕</button>
         </div>
       ) : (
         <button onClick={() => setAdding(true)} style={{
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-          color: '#5e6c84',
-          padding: '4px',
-          width: '100%',
-          textAlign: 'left'
+          background: 'none', border: 'none', cursor: 'pointer',
+          color: '#5e6c84', padding: '4px', width: '100%', textAlign: 'left'
         }}>
           + Agregar tarjeta
         </button>
+      )}
+
+      {selectedCard && (
+        <CardModal
+          card={selectedCard}
+          onClose={() => setSelectedCard(null)}
+          onAddComment={(cardId, comment) => {
+            onAddComment(cardId, comment)
+            setSelectedCard(prev => ({
+              ...prev,
+              comments: [...(prev.comments || []), comment]
+            }))
+          }}
+        />
       )}
     </div>
   )
