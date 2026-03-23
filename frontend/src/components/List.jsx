@@ -1,3 +1,5 @@
+import { Draggable } from '@hello-pangea/dnd'
+
 function List({ title, cards }) {
   return (
     <div style={{
@@ -11,16 +13,27 @@ function List({ title, cards }) {
     }}>
       <h3 style={{ marginBottom: '12px', fontSize: '16px' }}>{title}</h3>
       <div>
-        {cards.map((card) => (
-          <div key={card.id} style={{
-            backgroundColor: 'white',
-            borderRadius: '4px',
-            padding: '8px',
-            marginBottom: '8px',
-            boxShadow: '0 1px 2px rgba(0,0,0,0.2)'
-          }}>
-            {card.title}
-          </div>
+        {cards.map((card, index) => (
+          <Draggable key={card.id} draggableId={card.id} index={index}>
+            {(provided) => (
+              <div
+                ref={provided.innerRef}
+                {...provided.draggableProps}
+                {...provided.dragHandleProps}
+                style={{
+                  backgroundColor: 'white',
+                  borderRadius: '4px',
+                  padding: '8px',
+                  marginBottom: '8px',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                  cursor: 'grab',
+                  ...provided.draggableProps.style
+                }}
+              >
+                {card.title}
+              </div>
+            )}
+          </Draggable>
         ))}
       </div>
     </div>

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'
 import List from './List'
 
 const initialData = {
@@ -31,18 +32,51 @@ const initialData = {
 function Board() {
   const [data, setData] = useState(initialData)
 
+  function onDragEnd(result) {
+    const { source, destination } = result
+    if (!destination) return
+
+    const sourcelist = data.lists.find(l => l.id === source.droppableId)
+    const destList = data.lists.find(l => l.id === destination.droppableId)
+    const sourceCards = [...sourcelist.cards]
+    const destCards = sourcelist.id === destList.id ? sourceCards : [...destList.cards]
+
+    const [moved] = sourceCards.splice(source.index, 1)
+    destCards.splice(destination.index, 0, moved)
+
+    const newLists = data.lists.map(list => {
+      if (list.id === sourcelist.id) return { ...list, cards: sourceCards }
+      if (list.id === destList.id) return { ...list, cards: destCards }
+      return list
+    })
+
+    setData({ lists: newLists })
+  }
+
   return (
-    <div style={{
-      padding: '20px',
-      display: 'flex',
-      gap: '16px',
-      overflowX: 'auto',
-      minHeight: 'calc(100vh - 48px)'
-    }}>
-      {data.lists.map((list) => (
-        <List key={list.id} title={list.title} cards={list.cards} />
-      ))}
-    </div>
+    <DragDropContext onDragEnd={onDragEnd}>
+      <div style={{
+        padding: '20px',
+        display: 'flex',
+        gap: '16px',
+        overflowX: 'auto',
+        minHeight: 'calc(100vh - 48px)'
+      }}>
+        {data.lists.map((list) => (
+          <Droppable key={list.id} droppableId={list.id}>
+            {(provided) => (
+              <div ref={provided.innerRef} {...provided.droppableProps}>
+                <List
+                  title={list.title}
+                  cards={list.cards}
+                />
+                {provided.placeholder}
+              </div>
+            )}
+          </Droppable>
+        ))}
+      </div>
+    </DragDropContext>
   )
 }
 
