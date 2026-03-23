@@ -124,5 +124,5 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
-
+# Configuración de CORS para conexión con frontend
 CORS_ALLOW_ALL_ORIGINS = True
