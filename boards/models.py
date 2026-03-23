@@ -1,3 +1,4 @@
+# Modelos principales del sistema tipo Trello
 from django.db import models
 from django.contrib.auth.models import User
 
