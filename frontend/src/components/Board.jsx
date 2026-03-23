@@ -77,6 +77,18 @@ function Board() {
     setData({ lists: newLists })
   }
 
+  // ✅ NUEVA FUNCIÓN
+  function onAssignUser(cardId, user) {
+    const newLists = data.lists.map(list => ({
+      ...list,
+      cards: list.cards.map(card => {
+        if (card.id === cardId) return { ...card, assignedUser: user }
+        return card
+      })
+    }))
+    setData({ lists: newLists })
+  }
+
   return (
     <DragDropContext onDragEnd={onDragEnd}>
       <div style={{
@@ -95,6 +107,7 @@ function Board() {
                   cards={list.cards}
                   onAddCard={(title) => onAddCard(list.id, title)}
                   onAddComment={onAddComment}
+                  onAssignUser={onAssignUser} // ✅ SE PASA AQUÍ
                 />
                 {provided.placeholder}
               </div>

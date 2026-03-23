@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Draggable } from '@hello-pangea/dnd'
 import CardModal from './CardModal'
 
-function List({ title, cards, onAddCard, onAddComment }) {
+function List({ title, cards, onAddCard, onAddComment, onAssignUser }) {
   const [adding, setAdding] = useState(false)
   const [newTitle, setNewTitle] = useState('')
   const [selectedCard, setSelectedCard] = useState(null)
@@ -94,6 +94,10 @@ function List({ title, cards, onAddCard, onAddComment }) {
               ...prev,
               comments: [...(prev.comments || []), comment]
             }))
+          }}
+          onAssignUser={(cardId, user) => {
+            onAssignUser(cardId, user)
+            setSelectedCard(prev => ({ ...prev, assignedUser: user }))
           }}
         />
       )}

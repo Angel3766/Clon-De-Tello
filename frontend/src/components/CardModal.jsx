@@ -1,6 +1,8 @@
 import { useState } from 'react'
 
-function CardModal({ card, onClose, onAddComment }) {
+const usuariosDisponibles = ['Leonardo', 'Compañero', 'Profesor']
+
+function CardModal({ card, onClose, onAddComment, onAssignUser }) {
   const [comment, setComment] = useState('')
 
   function handleSubmit() {
@@ -29,6 +31,28 @@ function CardModal({ card, onClose, onAddComment }) {
           <h2 style={{ fontSize: '18px' }}>{card.title}</h2>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px' }}>✕</button>
         </div>
+
+        <h4 style={{ marginBottom: '8px' }}>Asignar usuario</h4>
+        <select
+          value={card.assignedUser || ''}
+          onChange={(e) => onAssignUser(card.id, e.target.value)}
+          style={{
+            width: '100%', padding: '6px',
+            borderRadius: '4px', border: '1px solid #ccc',
+            marginBottom: '16px'
+          }}
+        >
+          <option value=''>Sin asignar</option>
+          {usuariosDisponibles.map(u => (
+            <option key={u} value={u}>{u}</option>
+          ))}
+        </select>
+
+        {card.assignedUser && (
+          <p style={{ marginBottom: '16px', fontSize: '14px', color: '#5e6c84' }}>
+            Asignado a: <strong>{card.assignedUser}</strong>
+          </p>
+        )}
 
         <h4 style={{ marginBottom: '8px' }}>Comentarios</h4>
         <div style={{ marginBottom: '12px' }}>
