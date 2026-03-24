@@ -13,9 +13,9 @@ function Board() {
 
   async function cargarDatos() {
     try {
-      const boardsRes = await API.get('/boards/')
       const listsRes = await API.get('/lists/')
       const cardsRes = await API.get('/cards/')
+      const commentsRes = await API.get('/comments/')
 
       const lists = listsRes.data.map(list => ({
         ...list,
@@ -26,7 +26,9 @@ function Board() {
           .map(card => ({
             ...card,
             id: card.id.toString(),
-            comments: []
+            comments: commentsRes.data
+              .filter(c => c.card === card.id)
+              .map(c => c.content)
           }))
       }))
 
