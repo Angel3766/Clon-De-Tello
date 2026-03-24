@@ -1,36 +1,42 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import List from './List'
-
-const initialData = {
-  lists: [
-    {
-      id: '1',
-      title: 'To Do',
-      cards: [
-        { id: '1', title: 'Tarea de ejemplo 1', comments: [] },
-        { id: '2', title: 'Tarea de ejemplo 2', comments: [] },
-      ]
-    },
-    {
-      id: '2',
-      title: 'Doing',
-      cards: [
-        { id: '3', title: 'Tarea en progreso', comments: [] },
-      ]
-    },
-    {
-      id: '3',
-      title: 'Done',
-      cards: [
-        { id: '4', title: 'Tarea completada', comments: [] },
-      ]
-    },
-  ]
-}
+import API from '../api'
 
 function Board() {
-  const [data, setData] = useState(initialData)
+  const [data, setData] = useState({ lists: [] })
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    cargarDatos()
+  }, [])
+
+  async function cargarDatos() {
+    try {
+      const boardsRes = await API.get('/boards/')
+      const listsRes = await API.get('/lists/')
+      const cardsRes = await API.get('/cards/')
+
+      const lists = listsRes.data.map(list => ({
+        ...list,
+        id: list.id.toString(),
+        title: list.name,
+        cards: cardsRes.data
+          .filter(card => card.list === list.id)
+          .map(card => ({
+            ...card,
+            id: card.id.toString(),
+            comments: []
+          }))
+      }))
+
+      setData({ lists })
+      setLoading(false)
+    } catch (error) {
+      console.error('Error cargando datos:', error)
+      setLoading(false)
+    }
+  }
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -63,9 +69,9 @@ function Board() {
       if (found) destListId = list.id
     })
 
-    if (!destListId || !movedCard) return
+    if (!destListId || !movedCard || sourceListId === destListId) return
 
-    if (sourceListId === destListId) return
+    API.patch(`/cards/${activeId}/`, { list: parseInt(destListId) })
 
     const updatedLists = data.lists.map(list => {
       if (list.id === sourceListId) {
@@ -80,35 +86,75 @@ function Board() {
     setData({ lists: updatedLists })
   }
 
-  function onAddCard(listId, title) {
-    const newCard = { id: Date.now().toString(), title, comments: [] }
-    const newLists = data.lists.map(list => {
-      if (list.id === listId) return { ...list, cards: [...list.cards, newCard] }
-      return list
-    })
-    setData({ lists: newLists })
+  async function onAddCard(listId, title) {
+    try {
+      const res = await API.post('/cards/', {
+        title,
+        description: '',
+        list: parseInt(listId),
+        position: 0
+      })
+      const newCard = {
+        ...res.data,
+        id: res.data.id.toString(),
+        comments: []
+      }
+      const newLists = data.lists.map(list => {
+        if (list.id === listId) return { ...list, cards: [...list.cards, newCard] }
+        return list
+      })
+      setData({ lists: newLists })
+    } catch (error) {
+      console.error('Error creando tarjeta:', error)
+    }
   }
 
-  function onAddComment(cardId, comment) {
-    const newLists = data.lists.map(list => ({
-      ...list,
-      cards: list.cards.map(card => {
-        if (card.id === cardId) return { ...card, comments: [...(card.comments || []), comment] }
-        return card
+  async function onAddComment(cardId, comment) {
+    try {
+      await API.post('/comments/', {
+        content: comment,
+        card: parseInt(cardId),
+        user: 1
       })
-    }))
-    setData({ lists: newLists })
+      const newLists = data.lists.map(list => ({
+        ...list,
+        cards: list.cards.map(card => {
+          if (card.id === cardId) return { ...card, comments: [...(card.comments || []), comment] }
+          return card
+        })
+      }))
+      setData({ lists: newLists })
+    } catch (error) {
+      console.error('Error agregando comentario:', error)
+    }
   }
 
-  function onAssignUser(cardId, user) {
-    const newLists = data.lists.map(list => ({
-      ...list,
-      cards: list.cards.map(card => {
-        if (card.id === cardId) return { ...card, assignedUser: user }
-        return card
-      })
-    }))
-    setData({ lists: newLists })
+  async function onAssignUser(cardId, user) {
+    try {
+      await API.patch(`/cards/${cardId}/`, { assigned_to: user === '' ? null : parseInt(user) })
+      const newLists = data.lists.map(list => ({
+        ...list,
+        cards: list.cards.map(card => {
+          if (card.id === cardId) return { ...card, assignedUser: user }
+          return card
+        })
+      }))
+      setData({ lists: newLists })
+    } catch (error) {
+      console.error('Error asignando usuario:', error)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div style={{
+        display: 'flex', justifyContent: 'center',
+        alignItems: 'center', height: 'calc(100vh - 48px)',
+        color: 'white', fontSize: '18px'
+      }}>
+        Cargando tablero...
+      </div>
+    )
   }
 
   return (
