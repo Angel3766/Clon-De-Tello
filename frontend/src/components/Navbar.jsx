@@ -17,7 +17,7 @@ function Navbar() {
           fontWeight: 'bold',
           letterSpacing: '1px'
         }}>
-          Clon de Tello
+          Clon de Trello
         </h1>
       </div>
       <div style={{
