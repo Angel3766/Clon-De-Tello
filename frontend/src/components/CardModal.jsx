@@ -1,8 +1,6 @@
 import { useState } from 'react'
 
-const usuariosDisponibles = ['Leonardo', 'Compañero', 'Profesor']
-
-function CardModal({ card, onClose, onAddComment, onAssignUser }) {
+function CardModal({ card, usuarios, onClose, onAddComment, onAssignUser }) {
   const [comment, setComment] = useState('')
 
   function handleSubmit() {
@@ -43,6 +41,7 @@ function CardModal({ card, onClose, onAddComment, onAssignUser }) {
         <h4 style={{ marginBottom: '8px', color: 'rgba(255,255,255,0.7)', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1px' }}>
           👤 Asignar usuario
         </h4>
+
         <select
           value={card.assignedUser || ''}
           onChange={(e) => onAssignUser(card.id, e.target.value)}
@@ -54,21 +53,32 @@ function CardModal({ card, onClose, onAddComment, onAssignUser }) {
             color: 'white', cursor: 'pointer'
           }}
         >
-          <option value='' style={{ background: '#1a1a2e' }}>Sin asignar</option>
-          {usuariosDisponibles.map(u => (
-            <option key={u} value={u} style={{ background: '#1a1a2e' }}>{u}</option>
+          <option value='' style={{ background: '#1a1a2e' }}>
+            Sin asignar
+          </option>
+
+          {usuarios && usuarios.map(u => (
+            <option
+              key={u.id}
+              value={u.id}
+              style={{ background: '#1a1a2e' }}
+            >
+              {u.username}
+            </option>
           ))}
         </select>
 
         <h4 style={{ marginBottom: '8px', color: 'rgba(255,255,255,0.7)', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1px' }}>
           💬 Comentarios
         </h4>
+
         <div style={{ marginBottom: '12px' }}>
           {card.comments && card.comments.length === 0 && (
             <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '13px', fontStyle: 'italic' }}>
               Sin comentarios aún
             </p>
           )}
+
           {card.comments && card.comments.map((c, i) => (
             <div key={i} style={{
               background: 'rgba(255,255,255,0.08)',
@@ -98,6 +108,7 @@ function CardModal({ card, onClose, onAddComment, onAssignUser }) {
               outline: 'none'
             }}
           />
+
           <button onClick={handleSubmit} style={{
             backgroundColor: '#0079bf', color: 'white',
             border: 'none', borderRadius: '8px',

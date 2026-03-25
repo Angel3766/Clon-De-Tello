@@ -45,7 +45,7 @@ function Card({ card, onClick }) {
   )
 }
 
-function List({ list, onAddCard, onAddComment, onAssignUser }) {
+function List({ list, usuarios, onAddCard, onAddComment, onAssignUser }) {
   const [adding, setAdding] = useState(false)
   const [newTitle, setNewTitle] = useState('')
   const [selectedCard, setSelectedCard] = useState(null)
@@ -141,14 +141,21 @@ function List({ list, onAddCard, onAddComment, onAssignUser }) {
       {selectedCard && (
         <CardModal
           card={selectedCard}
+          usuarios={usuarios}   
           onClose={() => setSelectedCard(null)}
           onAddComment={(cardId, comment) => {
             onAddComment(cardId, comment)
-            setSelectedCard(prev => ({ ...prev, comments: [...(prev.comments || []), comment] }))
+            setSelectedCard(prev => ({
+              ...prev,
+              comments: [...(prev.comments || []), comment]
+            }))
           }}
           onAssignUser={(cardId, user) => {
             onAssignUser(cardId, user)
-            setSelectedCard(prev => ({ ...prev, assignedUser: user }))
+            setSelectedCard(prev => ({
+              ...prev,
+              assignedUser: user
+            }))
           }}
         />
       )}

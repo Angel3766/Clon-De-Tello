@@ -10,7 +10,7 @@ function Navbar() {
       borderBottom: '1px solid rgba(255,255,255,0.1)'
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-        <span style={{ fontSize: '24px' }}>🃏</span>
+        <span style={{ fontSize: '24px' }}></span>
         <h1 style={{
           color: 'white',
           fontSize: '20px',
@@ -27,7 +27,7 @@ function Navbar() {
         borderRadius: '20px',
         fontSize: '14px'
       }}>
-        👤 Usuario
+        
       </div>
     </nav>
   )

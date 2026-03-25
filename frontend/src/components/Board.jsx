@@ -5,6 +5,7 @@ import API from '../api'
 
 function Board() {
   const [data, setData] = useState({ lists: [] })
+  const [usuarios, setUsuarios] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -16,6 +17,7 @@ function Board() {
       const listsRes = await API.get('/lists/')
       const cardsRes = await API.get('/cards/')
       const commentsRes = await API.get('/comments/')
+      const usuariosRes = await API.get('/users/')
 
       const lists = listsRes.data.map(list => ({
         ...list,
@@ -33,6 +35,7 @@ function Board() {
       }))
 
       setData({ lists })
+      setUsuarios(usuariosRes.data)
       setLoading(false)
     } catch (error) {
       console.error('Error cargando datos:', error)
@@ -46,6 +49,14 @@ function Board() {
     })
   )
 
+  // 🔥 FUNCIÓN AUXILIAR
+  function findListByCardId(cardId) {
+    return data.lists.find(list =>
+      list.cards.some(card => card.id === cardId)
+    )
+  }
+
+  // 🔥 DRAG & DROP FIXED
   function onDragEnd(event) {
     const { active, over } = event
     if (!over) return
@@ -53,35 +64,41 @@ function Board() {
     const activeId = active.id
     const overId = over.id
 
-    let sourceListId = null
-    let destListId = null
-    let movedCard = null
+    const sourceList = findListByCardId(activeId)
 
-    data.lists.forEach(list => {
-      const cardIndex = list.cards.findIndex(c => c.id === activeId)
-      if (cardIndex !== -1) {
-        sourceListId = list.id
-        movedCard = list.cards[cardIndex]
-      }
+    // 🔥 Buscar lista destino
+    let destList = data.lists.find(l => l.id === overId)
+
+    // Si no es lista, puede ser una card
+    if (!destList) {
+      destList = findListByCardId(overId)
+    }
+
+    if (!sourceList || !destList || sourceList.id === destList.id) return
+
+    const movedCard = sourceList.cards.find(c => c.id === activeId)
+
+    // 🔥 Backend
+    API.patch(`/cards/${activeId}/`, {
+      list: parseInt(destList.id)
     })
 
-    data.lists.forEach(list => {
-      if (list.id === overId) destListId = list.id
-      const found = list.cards.find(c => c.id === overId)
-      if (found) destListId = list.id
-    })
-
-    if (!destListId || !movedCard || sourceListId === destListId) return
-
-    API.patch(`/cards/${activeId}/`, { list: parseInt(destListId) })
-
+    // 🔥 Frontend
     const updatedLists = data.lists.map(list => {
-      if (list.id === sourceListId) {
-        return { ...list, cards: list.cards.filter(c => c.id !== activeId) }
+      if (list.id === sourceList.id) {
+        return {
+          ...list,
+          cards: list.cards.filter(c => c.id !== activeId)
+        }
       }
-      if (list.id === destListId) {
-        return { ...list, cards: [...list.cards, movedCard] }
+
+      if (list.id === destList.id) {
+        return {
+          ...list,
+          cards: [...list.cards, movedCard]
+        }
       }
+
       return list
     })
 
@@ -97,15 +114,20 @@ function Board() {
         assigned_to: null,
         position: 0
       })
+
       const newCard = {
         ...res.data,
         id: res.data.id.toString(),
         comments: []
       }
+
       const newLists = data.lists.map(list => {
-        if (list.id === listId) return { ...list, cards: [...list.cards, newCard] }
+        if (list.id === listId) {
+          return { ...list, cards: [...list.cards, newCard] }
+        }
         return list
       })
+
       setData({ lists: newLists })
     } catch (error) {
       console.error('Error creando tarjeta:', error.response?.data)
@@ -119,13 +141,20 @@ function Board() {
         card: parseInt(cardId),
         user: 1
       })
+
       const newLists = data.lists.map(list => ({
         ...list,
         cards: list.cards.map(card => {
-          if (card.id === cardId) return { ...card, comments: [...(card.comments || []), comment] }
+          if (card.id === cardId) {
+            return {
+              ...card,
+              comments: [...(card.comments || []), comment]
+            }
+          }
           return card
         })
       }))
+
       setData({ lists: newLists })
     } catch (error) {
       console.error('Error agregando comentario:', error.response?.data)
@@ -134,14 +163,23 @@ function Board() {
 
   async function onAssignUser(cardId, user) {
     try {
-      await API.patch(`/cards/${cardId}/`, { assigned_to: user === '' ? null : parseInt(user) })
+      await API.patch(`/cards/${cardId}/`, {
+        assigned_to: user === '' ? null : parseInt(user)
+      })
+
       const newLists = data.lists.map(list => ({
         ...list,
         cards: list.cards.map(card => {
-          if (card.id === cardId) return { ...card, assignedUser: user }
+          if (card.id === cardId) {
+            return {
+              ...card,
+              assignedUser: user
+            }
+          }
           return card
         })
       }))
+
       setData({ lists: newLists })
     } catch (error) {
       console.error('Error asignando usuario:', error.response?.data)
@@ -151,9 +189,12 @@ function Board() {
   if (loading) {
     return (
       <div style={{
-        display: 'flex', justifyContent: 'center',
-        alignItems: 'center', height: 'calc(100vh - 48px)',
-        color: 'white', fontSize: '18px'
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: 'calc(100vh - 48px)',
+        color: 'white',
+        fontSize: '18px'
       }}>
         Cargando tablero...
       </div>
@@ -161,7 +202,11 @@ function Board() {
   }
 
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragEnd={onDragEnd}
+    >
       <div style={{
         padding: '20px',
         display: 'flex',
@@ -173,6 +218,7 @@ function Board() {
           <List
             key={list.id}
             list={list}
+            usuarios={usuarios}
             onAddCard={(title) => onAddCard(list.id, title)}
             onAddComment={onAddComment}
             onAssignUser={onAssignUser}
