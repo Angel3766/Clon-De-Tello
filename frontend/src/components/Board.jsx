@@ -1,21 +1,45 @@
+// src/components/Board.jsx
 import { useState, useEffect } from 'react'
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import List from './List'
-import API from '../api'
+import API, { USE_MOCK, MOCK } from '../api'
 
-function Board() {
+function Board({ boardId }) {
   const [data, setData] = useState({ lists: [] })
   const [usuarios, setUsuarios] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     cargarDatos()
-  }, [])
+  }, [boardId])
 
   async function cargarDatos() {
+    setLoading(true)
     try {
-      const listsRes = await API.get('/lists/')
-      const cardsRes = await API.get('/cards/')
+      // ── MOCK ──────────────────────────────────────────────
+      if (USE_MOCK) {
+        const board = MOCK.boards[boardId]
+        if (board) {
+          const lists = board.lists.map(list => ({
+            ...list,
+            id: list.id.toString(),
+            title: list.name,
+            cards: list.cards.map(card => ({
+              ...card,
+              id: card.id.toString(),
+              comments: card.comments || []
+            }))
+          }))
+          setData({ lists })
+          setUsuarios(MOCK.users)
+        }
+        setLoading(false)
+        return
+      }
+
+      // ── REAL ──────────────────────────────────────────────
+      const listsRes    = await API.get(`/lists/?board=${boardId}`)
+      const cardsRes    = await API.get(`/cards/?board=${boardId}`)
       const commentsRes = await API.get('/comments/')
       const usuariosRes = await API.get('/users/')
 
@@ -36,9 +60,9 @@ function Board() {
 
       setData({ lists })
       setUsuarios(usuariosRes.data)
-      setLoading(false)
     } catch (error) {
       console.error('Error cargando datos:', error)
+    } finally {
       setLoading(false)
     }
   }
@@ -49,56 +73,38 @@ function Board() {
     })
   )
 
-  // 🔥 FUNCIÓN AUXILIAR
   function findListByCardId(cardId) {
     return data.lists.find(list =>
       list.cards.some(card => card.id === cardId)
     )
   }
 
-  // 🔥 DRAG & DROP FIXED
   function onDragEnd(event) {
     const { active, over } = event
     if (!over) return
 
     const activeId = active.id
-    const overId = over.id
+    const overId   = over.id
 
     const sourceList = findListByCardId(activeId)
-
-    // 🔥 Buscar lista destino
     let destList = data.lists.find(l => l.id === overId)
-
-    // Si no es lista, puede ser una card
-    if (!destList) {
-      destList = findListByCardId(overId)
-    }
+    if (!destList) destList = findListByCardId(overId)
 
     if (!sourceList || !destList || sourceList.id === destList.id) return
 
     const movedCard = sourceList.cards.find(c => c.id === activeId)
 
-    // 🔥 Backend
-    API.patch(`/cards/${activeId}/`, {
-      list: parseInt(destList.id)
-    })
+    if (!USE_MOCK) {
+      API.patch(`/cards/${activeId}/`, { list: parseInt(destList.id) })
+    }
 
-    // 🔥 Frontend
     const updatedLists = data.lists.map(list => {
       if (list.id === sourceList.id) {
-        return {
-          ...list,
-          cards: list.cards.filter(c => c.id !== activeId)
-        }
+        return { ...list, cards: list.cards.filter(c => c.id !== activeId) }
       }
-
       if (list.id === destList.id) {
-        return {
-          ...list,
-          cards: [...list.cards, movedCard]
-        }
+        return { ...list, cards: [...list.cards, movedCard] }
       }
-
       return list
     })
 
@@ -107,6 +113,25 @@ function Board() {
 
   async function onAddCard(listId, title) {
     try {
+      if (USE_MOCK) {
+        const newCard = {
+          id: Date.now().toString(),
+          title,
+          description: '',
+          list: parseInt(listId),
+          assigned_to: null,
+          comments: []
+        }
+        setData(prev => ({
+          lists: prev.lists.map(list =>
+            list.id === listId
+              ? { ...list, cards: [...list.cards, newCard] }
+              : list
+          )
+        }))
+        return
+      }
+
       const res = await API.post('/cards/', {
         title,
         description: ' ',
@@ -114,21 +139,14 @@ function Board() {
         assigned_to: null,
         position: 0
       })
-
-      const newCard = {
-        ...res.data,
-        id: res.data.id.toString(),
-        comments: []
-      }
-
-      const newLists = data.lists.map(list => {
-        if (list.id === listId) {
-          return { ...list, cards: [...list.cards, newCard] }
-        }
-        return list
-      })
-
-      setData({ lists: newLists })
+      const newCard = { ...res.data, id: res.data.id.toString(), comments: [] }
+      setData(prev => ({
+        lists: prev.lists.map(list =>
+          list.id === listId
+            ? { ...list, cards: [...list.cards, newCard] }
+            : list
+        )
+      }))
     } catch (error) {
       console.error('Error creando tarjeta:', error.response?.data)
     }
@@ -136,51 +154,45 @@ function Board() {
 
   async function onAddComment(cardId, comment) {
     try {
-      await API.post('/comments/', {
-        content: comment,
-        card: parseInt(cardId),
-        user: 1
-      })
-
-      const newLists = data.lists.map(list => ({
-        ...list,
-        cards: list.cards.map(card => {
-          if (card.id === cardId) {
-            return {
-              ...card,
-              comments: [...(card.comments || []), comment]
-            }
-          }
-          return card
+      if (!USE_MOCK) {
+        await API.post('/comments/', {
+          content: comment,
+          card: parseInt(cardId),
+          user: 1
         })
+      }
+      setData(prev => ({
+        lists: prev.lists.map(list => ({
+          ...list,
+          cards: list.cards.map(card =>
+            card.id === cardId
+              ? { ...card, comments: [...(card.comments || []), comment] }
+              : card
+          )
+        }))
       }))
-
-      setData({ lists: newLists })
     } catch (error) {
       console.error('Error agregando comentario:', error.response?.data)
     }
   }
 
-  async function onAssignUser(cardId, user) {
+  async function onAssignUser(cardId, userId) {
     try {
-      await API.patch(`/cards/${cardId}/`, {
-        assigned_to: user === '' ? null : parseInt(user)
-      })
-
-      const newLists = data.lists.map(list => ({
-        ...list,
-        cards: list.cards.map(card => {
-          if (card.id === cardId) {
-            return {
-              ...card,
-              assignedUser: user
-            }
-          }
-          return card
+      if (!USE_MOCK) {
+        await API.patch(`/cards/${cardId}/`, {
+          assigned_to: userId === '' ? null : parseInt(userId)
         })
+      }
+      setData(prev => ({
+        lists: prev.lists.map(list => ({
+          ...list,
+          cards: list.cards.map(card =>
+            card.id === cardId
+              ? { ...card, assigned_to: userId }
+              : card
+          )
+        }))
       }))
-
-      setData({ lists: newLists })
     } catch (error) {
       console.error('Error asignando usuario:', error.response?.data)
     }
@@ -192,7 +204,7 @@ function Board() {
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
-        height: 'calc(100vh - 48px)',
+        height: 'calc(100vh - 44px)',
         color: 'white',
         fontSize: '18px'
       }}>
@@ -212,14 +224,15 @@ function Board() {
         display: 'flex',
         gap: '16px',
         overflowX: 'auto',
-        minHeight: 'calc(100vh - 48px)'
+        minHeight: 'calc(100vh - 44px)',
+        alignItems: 'flex-start'
       }}>
-        {data.lists.map((list) => (
+        {data.lists.map(list => (
           <List
             key={list.id}
             list={list}
             usuarios={usuarios}
-            onAddCard={(title) => onAddCard(list.id, title)}
+            onAddCard={title => onAddCard(list.id, title)}
             onAddComment={onAddComment}
             onAssignUser={onAssignUser}
           />
